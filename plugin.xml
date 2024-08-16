@@ -102,6 +102,8 @@
         </config-file>
         <header-file src="src/ios/wifi.h"/>
         <source-file src="src/ios/wifi.m"/>
+        <source-file src="src/ios/reachability.m"/>
+        <header-file src="src/ios/reachability.h"/>
         <header-file src="src/ios/ESPTouchV2/ESPPacketUtils.h"/>
         <source-file src="src/ios/ESPTouchV2/ESPPacketUtils.m"/>
         <header-file src="src/ios/ESPTouchV2/ESPProvisioner.h"/>
@@ -151,5 +153,8 @@
         <header-file src="src/ios/ESPUtils/ESPVersionMacro.h"/>
         <framework src="UIKit.framework"/>
         <framework src="Foundation.framework"/>
+        <framework src="CoreFoundation.framework"/>
+        <framework src="SystemConfiguration.framework"/>
+
     </platform>
 </plugin>
