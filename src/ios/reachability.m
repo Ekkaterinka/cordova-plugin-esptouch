@@ -24,6 +24,8 @@ static void ESPPrintReachabilityFlags(SCNetworkReachabilityFlags flags, const ch
 #endif
 }
 
+@implementation ESPReachability
+
 - (NetworkStatus)networkStatusForFlags:(SCNetworkReachabilityFlags)flags
 {
     ESPPrintReachabilityFlags(flags, "networkStatusForFlags");
