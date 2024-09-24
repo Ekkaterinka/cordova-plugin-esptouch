@@ -1,5 +1,10 @@
 package com.coloz.wifi;
 
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.content.Context;
 import android.location.LocationManager;
 import android.net.wifi.WifiInfo;
@@ -7,6 +12,8 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.SupplicantState;
 import android.util.Log;
 import android.os.Build;
+
+import androidx.core.app.ActivityCompat;
 
 import com.espressif.iot.esptouch2.provision.TouchNetUtil;
 
@@ -26,21 +33,52 @@ public class wifi extends CordovaPlugin {
     private static final String TAG = "wifi";
     private WifiManager mWifiManager;
     private LocationManager mLocationManager;
+    private static final int REQUEST_LOCATION = 1;
+
 
     protected void checkLocation() {
         JSONObject result = new JSONObject();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             boolean gps = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             boolean network = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-            if (gps || network){
-                wifiCallbackContext.success(1);
-            }else{
-                wifiCallbackContext.success(0);
+            Context context = this.cordova.getContext();
+            Activity activity = (Activity) context;
+            String permission = Manifest.permission.ACCESS_FINE_LOCATION;
+            String messagePermission = "У приложения нет доступа к геопозиции.\n" + "Разрешите доступ к Вашей геопозиции в настройках устройства.";
+            DialogInterface.OnClickListener onCancelListener =  new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    wifiCallbackContext.error("NOT_GRANTED");
+                }
+            };
+
+            if (ActivityCompat.checkSelfPermission(context, permission)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+                    builder.setMessage(messagePermission).setPositiveButton(activity.getResources().getString(android.R.string.ok), new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            ActivityCompat.requestPermissions(activity, new String[]{permission}, REQUEST_LOCATION);
+                        }
+                    }).setNegativeButton(activity.getResources().getString(android.R.string.cancel), onCancelListener).show();
+                } else {
+                ActivityCompat.requestPermissions((Activity) this.cordova.getContext(),
+                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        REQUEST_LOCATION);}
+            } else {
+                if (gps || network){
+                    wifiCallbackContext.success(1);
+                } else {
+                    wifiCallbackContext.success(0);
+                }
             }
             return;
         }
         wifiCallbackContext.success(1);
     }
+
 
     protected void getConnectedInfo() {
         JSONObject result = new JSONObject();
