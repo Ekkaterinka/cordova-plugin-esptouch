@@ -45,23 +45,15 @@ public class wifi extends CordovaPlugin {
             Activity activity = (Activity) context;
             String permission = Manifest.permission.ACCESS_FINE_LOCATION;
             String messagePermission = "У приложения нет доступа к геопозиции.\n" + "Разрешите доступ к Вашей геопозиции в настройках устройства.";
-            DialogInterface.OnClickListener onCancelListener =  new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    wifiCallbackContext.error("NOT_GRANTED");
-                }
-            };
+            DialogInterface.OnClickListener onCancelListener = (dialog, which) -> wifiCallbackContext.error("NOT_GRANTED");
 
             if (ActivityCompat.checkSelfPermission(context, permission)
                     != PackageManager.PERMISSION_GRANTED) {
 
                 if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-                    builder.setMessage(messagePermission).setPositiveButton(activity.getResources().getString(android.R.string.ok), new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            ActivityCompat.requestPermissions(activity, new String[]{permission}, REQUEST_LOCATION);
-                        }
+                    builder.setMessage(messagePermission).setPositiveButton(activity.getResources().getString(android.R.string.ok), (dialog, which) -> {
+                        ActivityCompat.requestPermissions(activity, new String[]{permission}, REQUEST_LOCATION);
                     }).setNegativeButton(activity.getResources().getString(android.R.string.cancel), onCancelListener).show();
                 } else {
                 ActivityCompat.requestPermissions((Activity) this.cordova.getContext(),
