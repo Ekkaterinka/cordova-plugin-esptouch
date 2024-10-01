@@ -13,7 +13,9 @@ import android.net.wifi.SupplicantState;
 import android.util.Log;
 import android.os.Build;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.espressif.iot.esptouch2.provision.TouchNetUtil;
 
@@ -33,38 +35,82 @@ public class wifi extends CordovaPlugin {
     private static final String TAG = "wifi";
     private WifiManager mWifiManager;
     private LocationManager mLocationManager;
-    private static final int REQUEST_LOCATION = 1;
+    private static final int REQUEST_LOCATION = 1503;
+    private final String permission = Manifest.permission.ACCESS_FINE_LOCATION;
+    AlertDialog alertDialog = null;
 
+
+    @Override
+    public void onRequestPermissionResult(int requestCode, @NonNull String[] permissions,
+                                          @NonNull int[] grantResults) {
+
+        onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    public void isConnected() {
+        boolean gps = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        boolean network = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+
+        if (gps || network) {
+            wifiCallbackContext.success(1);
+        } else {
+            wifiCallbackContext.success(0);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        Log.e(TAG, "onRequestPermissionsResult");
+        if (requestCode == REQUEST_LOCATION) {
+            if (grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                isConnected();
+            } else {
+                wifiCallbackContext.error("NOT_GRANTED");
+            }
+        }
+    }
+
+    @Override
+    public void requestPermissions(int requestCode) {
+        Log.e(TAG, "requestPermissions");
+        cordova.requestPermissions(this,requestCode, new String [] {permission});
+    }
+
+    public void requestLocationPermission() {
+        Activity activity = this.cordova.getActivity();
+        String messagePermission = "У приложения нет доступа к геопозиции.\n" + "Разрешите доступ к Вашей геопозиции в настройках устройства.";
+        DialogInterface.OnClickListener onCancelListener = (dialog, which) -> {
+            alertDialog = null;
+            wifiCallbackContext.error("NOT_GRANTED");};
+        DialogInterface.OnClickListener onOkListener = (dialog, which) -> {
+            requestPermissions(REQUEST_LOCATION);
+        };
+
+
+        if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity)
+                    .setMessage(messagePermission)
+                    .setPositiveButton("Перейти в настройки", onOkListener)
+                    .setNegativeButton("Позже", onCancelListener);
+
+            if (alertDialog == null) {
+                alertDialog = builder.show();
+            }
+        } else {
+            requestPermissions(REQUEST_LOCATION);
+        }
+    }
 
     protected void checkLocation() {
-        JSONObject result = new JSONObject();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            boolean gps = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-            boolean network = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-            Context context = this.cordova.getContext();
-            Activity activity = (Activity) context;
-            String permission = Manifest.permission.ACCESS_FINE_LOCATION;
-            String messagePermission = "У приложения нет доступа к геопозиции.\n" + "Разрешите доступ к Вашей геопозиции в настройках устройства.";
-            DialogInterface.OnClickListener onCancelListener = (dialog, which) -> wifiCallbackContext.error("NOT_GRANTED");
-
-            if (ActivityCompat.checkSelfPermission(context, permission)
-                    != PackageManager.PERMISSION_GRANTED) {
-
-                if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-                    builder.setMessage(messagePermission).setPositiveButton(activity.getResources().getString(android.R.string.ok), (dialog, which) -> {
-                        ActivityCompat.requestPermissions(activity, new String[]{permission}, REQUEST_LOCATION);
-                    }).setNegativeButton(activity.getResources().getString(android.R.string.cancel), onCancelListener).show();
-                } else {
-                ActivityCompat.requestPermissions((Activity) this.cordova.getContext(),
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        REQUEST_LOCATION);}
+            if (ContextCompat.checkSelfPermission(this.cordova.getContext(), permission)
+                    != PackageManager.PERMISSION_GRANTED ) {
+                requestLocationPermission();
             } else {
-                if (gps || network){
-                    wifiCallbackContext.success(1);
-                } else {
-                    wifiCallbackContext.success(0);
-                }
+                isConnected();
             }
             return;
         }
