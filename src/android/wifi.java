@@ -51,8 +51,10 @@ public class wifi extends CordovaPlugin {
         boolean gps = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         boolean network = mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
-        if (gps || network) {
+        if (network && gps) {
             wifiCallbackContext.success(1);
+        } else if (!gps) {
+            wifiCallbackContext.error("NOT_GRANTED");
         } else {
             wifiCallbackContext.success(0);
         }
